@@ -1,23 +1,24 @@
-// Package alert defines the Alert type and the Notifier interface used by
-// portwatch to report unexpected port state changes.
+// Package alert provides notification primitives for portwatch.
 //
-// # Alert
+// An Alert describes a port state change event (opened or closed) along with
+// the port number and the time the change was detected.
 //
-// An Alert carries a timestamp, severity level, affected port number, and a
-// human-readable message describing the change.
+// Notifiers
 //
-// # Notifier
+// The package ships several Notifier implementations:
 //
-// Notifier is a simple one-method interface:
+//   - LogNotifier  — writes alerts to a standard logger (default / fallback).
+//   - WebhookNotifier — HTTP POST to an arbitrary webhook endpoint.
+//   - SlackNotifier — HTTP POST to a Slack incoming-webhook URL.
+//   - MultiNotifier — fan-out wrapper that dispatches to multiple notifiers
+//     and collects all errors.
 //
-//	type Notifier interface {
-//		Notify(a Alert) error
-//	}
+// Usage
 //
-// Built-in implementations:
-//   - LogNotifier  — writes formatted alerts to any io.Writer (default: stderr).
-//   - MultiNotifier — fans out to multiple Notifiers, collecting all errors.
+//	notifier := alert.NewMultiNotifier()
+//	notifier.Add(alert.NewLogNotifier(log.Default()))
+//	notifier.Add(alert.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK_URL")))
 //
-// Additional notifiers (e.g. webhook, email) can be added by implementing the
-// Notifier interface.
+//	// later, on a detected change:
+//	notifier.Notify(alert.Alert{Port: 8080, Kind: "opened", Timestamp: time.Now()})
 package alert
