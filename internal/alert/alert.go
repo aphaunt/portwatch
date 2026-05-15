@@ -1,63 +1,68 @@
-// Package alert provides alerting mechanisms for portwatch.
-// It defines the Alert type and various notifier implementations
-// that can be used to report unexpected port state changes.
+// Package alert defines the Notifier interface and built-in implementations
+// for delivering port-change alerts to various destinations.
 package alert
 
 import (
 	"fmt"
-	"io"
-	"os"
+	"log"
 	"time"
 )
 
-// Level represents the severity of an alert.
-type Level string
+// EventType describes the kind of port change that triggered an alert.
+type EventType int
 
 const (
-	LevelInfo  Level = "INFO"
-	LevelWarn  Level = "WARN"
-	LevelError Level = "ERROR"
+	EventOpened EventType = iota
+	EventClosed
 )
 
-// Alert represents a notification about a port state change.
+// String returns a human-readable label for the event.
+func (e EventType) String() string {
+	switch e {
+	case EventOpened:
+		return "opened"
+	case EventClosed:
+		return "closed"
+	default:
+		return "unknown"
+	}
+}
+
+// Alert carries the details of a single port-change event.
 type Alert struct {
 	Timestamp time.Time
-	Level     Level
+	Event     EventType
 	Port      int
-	Message   string
+	Host      string
 }
 
-// String returns a human-readable representation of the alert.
+// String returns a formatted one-line description of the alert.
 func (a Alert) String() string {
-	return fmt.Sprintf("[%s] %s port=%d msg=%q",
-		a.Timestamp.Format(time.RFC3339),
-		a.Level,
-		a.Port,
-		a.Message,
-	)
+	return fmt.Sprintf("[%s] port %d %s on %s",
+		a.Timestamp.UTC().Format(time.RFC3339), a.Port, a.Event, a.Host)
 }
 
-// Notifier is the interface implemented by alert sinks.
+// Notifier is the interface implemented by all alert back-ends.
 type Notifier interface {
-	Notify(a Alert) error
+	Notify(Alert) error
 }
 
-// LogNotifier writes alerts as text lines to an io.Writer.
+// LogNotifier writes alerts to the standard logger.
 type LogNotifier struct {
-	Out io.Writer
+	logger *log.Logger
 }
 
-// NewLogNotifier returns a LogNotifier that writes to w.
-// If w is nil, os.Stderr is used.
-func NewLogNotifier(w io.Writer) *LogNotifier {
-	if w == nil {
-		w = os.Stderr
+// NewLogNotifier creates a LogNotifier backed by the provided logger.
+// If logger is nil, the default log package logger is used.
+func NewLogNotifier(logger *log.Logger) *LogNotifier {
+	if logger == nil {
+		logger = log.Default()
 	}
-	return &LogNotifier{Out: w}
+	return &LogNotifier{logger: logger}
 }
 
-// Notify writes the alert to the underlying writer.
+// Notify logs the alert and always returns nil.
 func (l *LogNotifier) Notify(a Alert) error {
-	_, err := fmt.Fprintln(l.Out, a.String())
-	return err
+	l.logger.Println(a.String())
+	return nil
 }
