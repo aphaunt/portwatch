@@ -1,24 +1,24 @@
-// Package alert provides notification primitives for portwatch.
+// Package alert defines the Notifier interface and provides multiple
+// notification backends for portwatch.
 //
-// An Alert describes a port state change event (opened or closed) along with
-// the port number and the time the change was detected.
+// Supported backends:
 //
-// Notifiers
+//	- LogNotifier    – writes alerts to a standard logger
+//	- WebhookNotifier – HTTP POST to a generic webhook endpoint
+//	- SlackNotifier   – Slack incoming webhook
+//	- DiscordNotifier – Discord webhook
+//	- TeamsNotifier   – Microsoft Teams incoming webhook (Adaptive Card)
+//	- EmailNotifier   – SMTP email
+//	- PagerDutyNotifier – PagerDuty Events API v2
+//	- OpsGenieNotifier  – OpsGenie Alerts API
 //
-// The package ships several Notifier implementations:
+// Multiple notifiers can be composed with NewMultiNotifier, which fans
+// out each alert to every registered backend and collects any errors.
 //
-//   - LogNotifier  — writes alerts to a standard logger (default / fallback).
-//   - WebhookNotifier — HTTP POST to an arbitrary webhook endpoint.
-//   - SlackNotifier — HTTP POST to a Slack incoming-webhook URL.
-//   - MultiNotifier — fan-out wrapper that dispatches to multiple notifiers
-//     and collects all errors.
+// Example:
 //
-// Usage
-//
-//	notifier := alert.NewMultiNotifier()
-//	notifier.Add(alert.NewLogNotifier(log.Default()))
-//	notifier.Add(alert.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK_URL")))
-//
-//	// later, on a detected change:
-//	notifier.Notify(alert.Alert{Port: 8080, Kind: "opened", Timestamp: time.Now()})
+//	multi := alert.NewMultiNotifier()
+//	multi.Add(alert.NewLogNotifier(log.Default()))
+//	multi.Add(alert.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK")))
+//	multi.Add(alert.NewTeamsNotifier(os.Getenv("TEAMS_WEBHOOK")))
 package alert
