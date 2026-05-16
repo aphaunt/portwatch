@@ -1,24 +1,18 @@
-// Package alert defines the Notifier interface and provides multiple
-// notification backends for portwatch.
+// Package alert defines the Notifier interface and concrete implementations
+// used by portwatch to deliver port-change alerts through multiple channels.
 //
-// Supported backends:
+// Built-in notifiers
 //
-//	- LogNotifier    – writes alerts to a standard logger
-//	- WebhookNotifier – HTTP POST to a generic webhook endpoint
-//	- SlackNotifier   – Slack incoming webhook
-//	- DiscordNotifier – Discord webhook
-//	- TeamsNotifier   – Microsoft Teams incoming webhook (Adaptive Card)
-//	- EmailNotifier   – SMTP email
-//	- PagerDutyNotifier – PagerDuty Events API v2
-//	- OpsGenieNotifier  – OpsGenie Alerts API
+//   - LogNotifier    – writes to a standard Go [log.Logger]
+//   - WebhookNotifier – HTTP POST to an arbitrary URL
+//   - SlackNotifier   – Slack Incoming Webhook
+//   - DiscordNotifier – Discord Webhook
+//   - TeamsNotifier   – Microsoft Teams Incoming Webhook
+//   - EmailNotifier   – SMTP email delivery
+//   - PagerDutyNotifier – PagerDuty Events API v2
+//   - OpsGenieNotifier  – OpsGenie Alerts API
+//   - SyslogNotifier    – local syslog daemon (LOG_WARNING|LOG_DAEMON)
 //
-// Multiple notifiers can be composed with NewMultiNotifier, which fans
-// out each alert to every registered backend and collects any errors.
-//
-// Example:
-//
-//	multi := alert.NewMultiNotifier()
-//	multi.Add(alert.NewLogNotifier(log.Default()))
-//	multi.Add(alert.NewSlackNotifier(os.Getenv("SLACK_WEBHOOK")))
-//	multi.Add(alert.NewTeamsNotifier(os.Getenv("TEAMS_WEBHOOK")))
+// Notifiers can be composed with [NewMultiNotifier] to fan-out a single
+// alert to several backends simultaneously.
 package alert
