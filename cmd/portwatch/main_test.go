@@ -15,20 +15,9 @@ func TestMain_MissingConfig(t *testing.T) {
 		t.Skip("skipping binary integration test in short mode")
 	}
 
-	// Build the binary into a temp file.
-	tmp, err := os.CreateTemp("", "portwatch-test-*")
-	if err != nil {
-		t.Fatalf("create temp file: %v", err)
-	}
-	tmp.Close()
-	defer os.Remove(tmp.Name())
+	binPath := buildBinary(t)
 
-	build := exec.Command("go", "build", "-o", tmp.Name(), ".")
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build failed: %v\n%s", err, out)
-	}
-
-	cmd := exec.Command(tmp.Name(), "-config", "/nonexistent/portwatch.json")
+	cmd := exec.Command(binPath, "-config", "/nonexistent/portwatch.json")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -48,4 +37,24 @@ func TestMain_MissingConfig(t *testing.T) {
 		cmd.Process.Kill()
 		t.Fatal("binary did not exit within timeout")
 	}
+}
+
+// buildBinary compiles the main package into a temporary file and returns its
+// path. The file is automatically removed when the test completes.
+func buildBinary(t *testing.T) string {
+	t.Helper()
+
+	tmp, err := os.CreateTemp("", "portwatch-test-*")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	tmp.Close()
+	t.Cleanup(func() { os.Remove(tmp.Name()) })
+
+	build := exec.Command("go", "build", "-o", tmp.Name(), ".")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build failed: %v\n%s", err, out)
+	}
+
+	return tmp.Name()
 }
